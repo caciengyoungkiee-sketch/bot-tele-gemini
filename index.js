@@ -1,21 +1,36 @@
 const { Telegraf } = require('telegraf');
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+// Inisialisasi Bot dan AI
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-bot.start((ctx) => ctx.reply('Bot Gemini sudah aktif di Railway!'));
+// Pesan saat bot dimulai
+bot.start((ctx) => ctx.reply('Bot Gemini sudah aktif di Railway! Ada yang bisa dibantu?'));
 
+// Logika menjawab pesan
 bot.on('text', async (ctx) => {
   try {
+    // Memberi tanda bot sedang mengetik
+    await ctx.sendChatAction('typing');
+    
     const result = await model.generateContent(ctx.message.text);
     const response = await result.response;
-    await ctx.reply(response.text());
+    const text = response.text();
+    
+    await ctx.reply(text);
   } catch (err) {
-    console.error(err);
-    ctx.reply('Maaf, ada gangguan teknis.');
+    console.error('Error Gemini:', err);
+    await ctx.reply('Maaf, otakku lagi panas. Coba tanya lagi nanti ya!');
   }
 });
 
-bot.launch();
+// Menjalankan Bot
+bot.launch().then(() => {
+  console.log("Bot berhasil meluncur!");
+});
+
+// Enable graceful stop
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
